@@ -19,19 +19,21 @@ export default function GlobeEngine() {
 
   return (
     <>
-      <Stars radius={150} depth={50} count={10000} factor={6} fade speed={1} />
+      <Stars radius={150} depth={50} count={10000} factor={6} fade />
+      {/* Fix: Pakai intensitas yang diterima TypeScript */}
       <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} intensity={2} color="#00f2ff" />
-      <Float speed={3} rotationIntensity={0.5}>
+      <pointLight position={[10, 10, 10]} intensity={150} color="#00f2ff" />
+      
+      <Float speed={3} rotationIntensity={0.5} floatIntensity={0.5}>
         <group>
           <mesh ref={mesh}>
             <Sphere args={[2.5, 64, 64]}>
-              <meshStandardMaterial color="#000814" wireframe emissive="#00f2ff" emissiveIntensity={0.6} />
+              <meshStandardMaterial color="#000814" wireframe emissive="#00f2ff" emissiveIntensity={0.8} />
             </Sphere>
           </mesh>
           <mesh ref={atmosphere}>
             <Sphere args={[2.6, 64, 64]}>
-              <MeshDistortMaterial color="#00f2ff" speed={4} distort={0.2} transparent opacity={0.05} />
+              <MeshDistortMaterial color="#00f2ff" speed={4} distort={0.2} transparent opacity={0.1} />
             </Sphere>
           </mesh>
         </group>

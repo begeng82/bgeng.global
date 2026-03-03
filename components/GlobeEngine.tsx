@@ -5,85 +5,104 @@ import { OrbitControls, Stars, Html, PerspectiveCamera } from "@react-three/drei
 import * as THREE from "three";
 import axios from "axios";
 
+// --- GLOBAL REAL-TIME DATA FETCHING ---
 export default function GlobeEngine({ activeLayers }: { activeLayers: string[] }) {
   const globeRef = useRef<THREE.Group>(null);
-  const [realTimeEvents, setRealTimeEvents] = useState<any[]>([]);
+  const [liveData, setLiveData] = useState<any[]>([]);
 
-  // 1. Ambil Data Nyata (Gempa Bumi Dunia 24 Jam Terakhir)
+  // 1. AMBIL DATA NYATA (Gempa Bumi & Aktivitas Geologi)
+  const fetchGlobalData = async () => {
+    try {
+      // Data nyata dari USGS (United States Geological Survey)
+      const res = await axios.get("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson");
+      const mapping = res.data.features.map((f: any) => ({
+        id: f.id,
+        lat: f.geometry.coordinates[1],
+        lng: f.geometry.coordinates[0],
+        mag: f.properties.mag,
+        place: f.properties.place,
+        type: 'geologi',
+        severity: f.properties.mag > 5 ? 'high' : 'medium'
+      }));
+      setLiveData(mapping);
+    } catch (e) { console.error("Data Sync Error", e); }
+  };
+
   useEffect(() => {
-    const fetchRealData = async () => {
-      try {
-        const res = await axios.get("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson");
-        const points = res.data.features.map((feat: any) => ({
-          id: feat.id,
-          lat: feat.geometry.coordinates[1],
-          lng: feat.geometry.coordinates[0],
-          mag: feat.properties.mag,
-          place: feat.properties.place,
-          time: new Date(feat.properties.time).toLocaleTimeString(),
-          type: 'alam'
-        }));
-        setRealTimeEvents(points);
-      } catch (err) {
-        console.error("Gagal mengambil data real-time", err);
-      }
-    };
-    fetchRealData();
-    const interval = setInterval(fetchRealData, 300000); // Update tiap 5 menit
-    return () => clearInterval(interval);
+    fetchGlobalData();
+    const timer = setInterval(fetchGlobalData, 600000); // Sync tiap 10 menit
+    return () => clearInterval(timer);
   }, []);
 
-  const [map, night, clouds] = useLoader(THREE.TextureLoader, [
+  // 2. LOAD HIGH-END TEXTURES
+  const [dayMap, nightMap, cloudMap, specMap] = useLoader(THREE.TextureLoader, [
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_lights_2048.png',
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png',
+    'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg'
   ]);
 
   useFrame(({ clock }) => {
-    if (globeRef.current) globeRef.current.rotation.y = clock.getElapsedTime() * 0.01;
+    if (globeRef.current) globeRef.current.rotation.y = clock.getElapsedTime() * 0.015;
   });
 
   return (
     <>
-      <PerspectiveCamera makeDefault position={[0, 0, 6]} />
-      <OrbitControls enableDamping dampingFactor={0.05} minDistance={2.2} maxDistance={12} />
-      <Stars radius={200} depth={50} count={20000} factor={7} fade />
+      <PerspectiveCamera makeDefault position={[0, 0, 6]} fov={45} />
+      <OrbitControls enableDamping dampingFactor={0.05} minDistance={2.1} maxDistance={10} />
+      <Stars radius={200} depth={50} count={15000} factor={6} fade speed={1} />
       
-      <ambientLight intensity={0.6} />
-      <pointLight position={[10, 10, 10]} intensity={2} color="#ffffff" />
+      <ambientLight intensity={0.4} />
+      <pointLight position={[10, 5, 10]} intensity={2.5} color="#ffffff" />
+      <spotLight position={[-10, 10, -10]} angle={0.15} penumbra={1} intensity={1} color="#3b82f6" />
 
       <group ref={globeRef}>
-        {/* Bumi & Atmosfer */}
-        <mesh>
+        {/* BUMI UTAMA */}
+        <mesh castShadow receiveShadow>
           <sphereGeometry args={[2, 64, 64]} />
-          <meshStandardMaterial map={map} emissiveMap={night} emissive={new THREE.Color("#fff7ad")} emissiveIntensity={0.7} />
-        </mesh>
-        <mesh scale={1.015}>
-          <sphereGeometry args={[2, 64, 64]} />
-          <meshStandardMaterial map={clouds} transparent opacity={0.4} depthWrite={false} />
+          <meshStandardMaterial 
+            map={dayMap} 
+            emissiveMap={nightMap} 
+            emissive={new THREE.Color("#fff7ad")} 
+            emissiveIntensity={0.8}
+            roughnessMap={specMap}
+            metalness={0.15}
+          />
         </mesh>
 
-        {/* Render Titik Data Nyata (Gempa/Kejadian Alam) */}
-        {activeLayers.includes('alam') && realTimeEvents.map((event) => {
-          const phi = (90 - event.lat) * (Math.PI / 180);
-          const theta = (event.lng + 180) * (Math.PI / 180);
+        {/* LAPISAN AWAN DINAMIS */}
+        <mesh scale={1.02}>
+          <sphereGeometry args={[2, 64, 64]} />
+          <meshStandardMaterial map={cloudMap} transparent opacity={0.4} depthWrite={false} />
+        </mesh>
+
+        {/* ATMOSFER GLOW */}
+        <mesh scale={1.12}>
+          <sphereGeometry args={[2, 64, 64]} />
+          <meshBasicMaterial color="#4facfe" transparent opacity={0.06} side={THREE.BackSide} />
+        </mesh>
+
+        {/* RENDERING LIVE DATA MARKERS */}
+        {activeLayers.includes('geologi') && liveData.map((point) => {
+          const phi = (90 - point.lat) * (Math.PI / 180);
+          const theta = (point.lng + 180) * (Math.PI / 180);
           const x = -(2.05 * Math.sin(phi) * Math.cos(theta));
           const y = 2.05 * Math.cos(phi);
           const z = 2.05 * Math.sin(phi) * Math.sin(theta);
 
           return (
-            <group key={event.id} position={[x, y, z]}>
+            <group key={point.id} position={[x, y, z]}>
               <mesh>
-                <sphereGeometry args={[0.02, 16, 16]} />
-                <meshBasicMaterial color="#ff5500" />
+                <sphereGeometry args={[0.025, 16, 16]} />
+                <meshBasicMaterial color={point.severity === 'high' ? '#ff0000' : '#ff8800'} />
               </mesh>
-              <Html distanceFactor={10}>
-                <div className="group relative -translate-x-1/2 -translate-y-full">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping" />
-                  <div className="hidden group-hover:block absolute bottom-4 bg-black/90 border border-orange-500/50 p-3 rounded-lg backdrop-blur-md w-48 shadow-2xl z-50">
-                    <p className="text-[10px] font-black text-orange-400 border-b border-orange-500/20 mb-1 italic uppercase">Aktivitas Seismik Nyata</p>
-                    <p className="text-[11px] text-white font-bold mb-1">{event.mag} SR - {event.place}</p>
-                    <p className="text-[9px] text-slate-400">Waktu: {event.time}</p>
+              <Html distanceFactor={8} center>
+                <div className="group relative pointer-events-auto cursor-help">
+                  <div className={`w-3 h-3 rounded-full animate-ping shadow-lg ${point.severity === 'high' ? 'bg-red-500' : 'bg-orange-500'}`} />
+                  <div className="absolute top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-black/95 border border-white/20 p-3 rounded-lg backdrop-blur-xl w-56 shadow-2xl z-50">
+                    <p className="text-[10px] font-black text-orange-400 mb-1 border-b border-white/10 italic tracking-widest uppercase">DATA_AKTIVITAS_NYATA</p>
+                    <p className="text-[12px] text-white font-bold leading-tight">{point.mag} SR - {point.place}</p>
+                    <p className="text-[9px] text-slate-400 mt-1 uppercase tracking-tighter italic">Sumber: USGS_LIVE_API</p>
                   </div>
                 </div>
               </Html>

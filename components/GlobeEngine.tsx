@@ -1,91 +1,90 @@
 "use client";
-import { useRef, useState, useEffect } from "react";
+import { useRef } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
-import { OrbitControls, Stars, Html, PerspectiveCamera } from "@react-three/drei";
+import { OrbitControls, Stars, Html, PerspectiveCamera, Float } from "@react-three/drei";
 import * as THREE from "three";
-import axios from "axios";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function GlobeEngine({ activeLayers }: { activeLayers: string[] }) {
   const globeRef = useRef<THREE.Group>(null);
-  const [events, setEvents] = useState<any[]>([]);
+  const cloudRef = useRef<THREE.Mesh>(null);
 
-  // AMBIL DATA REAL-TIME TANPA JEDA (Gempa & Kejadian Dunia)
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson");
-        const mapped = res.data.features.slice(0, 30).map((f: any) => ({
-          id: f.id,
-          lat: f.geometry.coordinates[1],
-          lng: f.geometry.coordinates[0],
-          title: f.properties.place,
-          val: f.properties.mag,
-          type: 'geologi'
-        }));
-        setEvents(mapped);
-      } catch (e) { console.log("Sync Error"); }
-    };
-    fetchData();
-    const interval = setInterval(fetchData, 30000); // Auto-sync tiap 30 detik
-    return () => clearInterval(interval);
-  }, []);
+  // DATA 1: Gempa Bumi Nyata (Update tiap 1 menit)
+  const { data: earthquake } = useSWR(
+    "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson",
+    fetcher, { refreshInterval: 60000 }
+  );
 
-  const [day, night, clouds] = useLoader(THREE.TextureLoader, [
+  // LOAD TEXTURE 4K
+  const [map, night, clouds, spec] = useLoader(THREE.TextureLoader, [
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_lights_2048.png',
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png',
+    'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg'
   ]);
 
   useFrame(({ clock }) => {
-    if (globeRef.current) globeRef.current.rotation.y = clock.getElapsedTime() * 0.01;
+    const t = clock.getElapsedTime();
+    if (globeRef.current) globeRef.current.rotation.y = t * 0.01;
+    if (cloudRef.current) cloudRef.current.rotation.y = t * 0.015;
   });
 
   return (
     <>
       <PerspectiveCamera makeDefault position={[0, 0, 6]} />
       <OrbitControls enableDamping dampingFactor={0.05} minDistance={2.2} maxDistance={10} />
-      <Stars radius={150} depth={50} count={10000} factor={4} fade />
+      <Stars radius={200} depth={60} count={15000} factor={7} fade speed={1} />
       
-      <ambientLight intensity={0.7} />
+      <ambientLight intensity={0.6} />
       <pointLight position={[10, 10, 10]} intensity={2} color="#fff" />
+      <spotLight position={[-10, -5, -10]} intensity={1} color="#3b82f6" />
 
       <group ref={globeRef}>
-        {/* Lapisan Bumi Satelit */}
-        <mesh castShadow>
+        {/* BOLA BUMI */}
+        <mesh>
           <sphereGeometry args={[2, 64, 64]} />
-          <meshStandardMaterial map={day} emissiveMap={night} emissive={new THREE.Color("#fff7ad")} emissiveIntensity={0.6} roughness={0.7} />
+          <meshStandardMaterial map={map} emissiveMap={night} emissive={new THREE.Color("#fff7ad")} emissiveIntensity={0.7} roughnessMap={spec} />
         </mesh>
 
-        {/* Lapisan Atmosfer Awan */}
-        <mesh scale={1.02}>
+        {/* AWAN BERGERAK */}
+        <mesh ref={cloudRef} scale={1.015}>
           <sphereGeometry args={[2, 64, 64]} />
-          <meshStandardMaterial map={clouds} transparent opacity={0.35} depthWrite={false} />
+          <meshStandardMaterial map={clouds} transparent opacity={0.4} depthWrite={false} />
         </mesh>
 
-        {/* Marker Kejadian Nyata */}
-        {activeLayers.includes('geologi') && events.map((ev) => {
-          const phi = (90 - ev.lat) * (Math.PI / 180);
-          const theta = (ev.lng + 180) * (Math.PI / 180);
-          const x = -(2.05 * Math.sin(phi) * Math.cos(theta));
-          const y = 2.05 * Math.cos(phi);
-          const z = 2.05 * Math.sin(phi) * Math.sin(theta);
+        {/* EFEK GLOW ATMOSFER */}
+        <mesh scale={1.1}>
+          <sphereGeometry args={[2, 64, 64]} />
+          <meshBasicMaterial color="#4facfe" transparent opacity={0.06} side={THREE.BackSide} />
+        </mesh>
+
+        {/* RENDER TITIK GEMPA NYATA */}
+        {activeLayers.includes('geologi') && earthquake?.features?.map((f: any) => {
+          const [lng, lat] = f.geometry.coordinates;
+          const phi = (90 - lat) * (Math.PI / 180);
+          const theta = (lng + 180) * (Math.PI / 180);
+          const pos = [-(2.05 * Math.sin(phi) * Math.cos(theta)), 2.05 * Math.cos(phi), 2.05 * Math.sin(phi) * Math.sin(theta)] as [number, number, number];
 
           return (
-            <group key={ev.id} position={[x, y, z]}>
-              <mesh>
-                <sphereGeometry args={[0.02, 16, 16]} />
-                <meshBasicMaterial color="#00f2ff" />
-              </mesh>
-              <Html distanceFactor={10} center>
-                <div className="group relative flex flex-col items-center">
-                  <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping shadow-[0_0_10px_cyan]" />
-                  <div className="absolute bottom-4 hidden group-hover:block bg-black/95 border border-cyan-500/50 p-2 rounded text-[10px] w-40 backdrop-blur-md">
-                    <p className="font-bold text-cyan-400">INFO_NYATA</p>
-                    <p className="text-white leading-tight">{ev.title}</p>
-                    <p className="text-slate-400 mt-1">{ev.val} SR</p>
+            <group key={f.id} position={pos}>
+              <Float speed={5} rotationIntensity={1} floatIntensity={2}>
+                <mesh>
+                  <sphereGeometry args={[0.03, 16, 16]} />
+                  <meshBasicMaterial color={f.properties.mag > 6 ? "#ff0000" : "#ffaa00"} />
+                </mesh>
+                <Html distanceFactor={10} center>
+                  <div className="group relative cursor-crosshair">
+                    <div className="w-4 h-4 rounded-full animate-ping bg-red-500" />
+                    <div className="absolute bottom-6 hidden group-hover:block bg-black/95 border border-red-500/50 p-3 rounded-lg backdrop-blur-xl w-52 shadow-2xl z-50 font-mono">
+                      <p className="text-[9px] font-black text-red-500 mb-1 tracking-widest uppercase">⚠️ ALERT_GEOLOGI</p>
+                      <p className="text-[11px] text-white font-bold">{f.properties.mag} SR - {f.properties.place}</p>
+                      <p className="text-[8px] text-slate-500 mt-1 uppercase italic font-mono">Live_Data: USGS_GOV</p>
+                    </div>
                   </div>
-                </div>
-              </Html>
+                </Html>
+              </Float>
             </group>
           );
         })}

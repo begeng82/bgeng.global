@@ -1,5 +1,5 @@
 {
-  "name": "bgeng.global",
+  "name": "bgeng-global",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -15,7 +15,9 @@
     "@react-three/fiber": "8.15.0",
     "@react-three/drei": "9.88.0",
     "swr": "2.2.4",
-    "lucide-react": "0.284.0"
+    "lucide-react": "0.284.0",
+    "clsx": "2.0.0",
+    "tailwind-merge": "2.0.0"
   },
   "devDependencies": {
     "typescript": "5.2.2",

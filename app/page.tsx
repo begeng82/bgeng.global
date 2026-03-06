@@ -1,102 +1,93 @@
 "use client";
-// @ts-nocheck
-import { useRef } from "react";
-import { useFrame, useLoader } from "@react-three/fiber";
-import { OrbitControls, Stars, Html, PerspectiveCamera, Float } from "@react-three/drei";
-import * as THREE from "three";
-import useSWR from "swr";
+import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
+import { Canvas } from '@react-three/fiber';
+import { Activity, ShieldAlert, Zap, Globe, Search, Radar, Terminal, Cpu } from 'lucide-react';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const GlobeEngine = dynamic(() => import('../components/GlobeEngine'), { 
+  ssr: false, 
+  loading: () => <div className="h-full flex items-center justify-center bg-black text-cyan-500 font-mono text-sm tracking-[0.5em] animate-pulse">ESTABLISHING_ENCRYPTED_UPLINK...</div>
+});
 
-export default function GlobeEngine({ activeLayers }) {
-  const globeRef = useRef();
-  const cloudRef = useRef();
-
-  // DATA LIVE: Gempa Bumi Global (Update tiap 10 detik)
-  const { data: geoData } = useSWR(
-    "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson",
-    fetcher, { refreshInterval: 10000 }
-  );
-
-  // TEXTURE ASSET (NASA Blue Marble Style)
-  const [map, night, clouds, spec] = useLoader(THREE.TextureLoader, [
-    'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
-    'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_lights_2048.png',
-    'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png',
-    'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg'
-  ]);
-
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    if (globeRef.current) globeRef.current.rotation.y = t * 0.006;
-    if (cloudRef.current) cloudRef.current.rotation.y = t * 0.009;
-  });
+export default function GlobalDashboard() {
+  const [layers, setLayers] = useState(['geologi']);
 
   return (
-    <>
-      <PerspectiveCamera makeDefault position={[0, 0, 7]} fov={45} />
-      <OrbitControls enableDamping dampingFactor={0.05} minDistance={2.5} maxDistance={15} />
-      <Stars radius={300} depth={60} count={25000} factor={7} fade speed={1} />
+    <main className="fixed inset-0 bg-[#000] text-slate-300 font-sans overflow-hidden flex flex-col lg:flex-row uppercase">
       
-      <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} intensity={2.5} color="#fff" />
-      <spotLight position={[-10, 5, 10]} angle={0.5} penumbra={1} intensity={2} color="#3b82f6" />
+      {/* SIDEBAR OPERASI */}
+      <aside className="w-full lg:w-96 bg-[#050505]/95 border-b lg:border-b-0 lg:border-r border-white/10 z-20 flex flex-col backdrop-blur-3xl">
+        <div className="p-8 border-b border-white/5 bg-gradient-to-br from-blue-900/20 to-transparent">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-cyan-600 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.4)]">
+              <Radar className="text-white w-6 h-6 animate-spin-slow" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-white italic tracking-tighter leading-none">OMNIS_CORE</h1>
+              <span className="text-[9px] text-cyan-500 font-mono tracking-[0.3em] font-bold">V16_STABLE_LINK</span>
+            </div>
+          </div>
+        </div>
 
-      <group ref={globeRef}>
-        {/* TERRAFORM: Lapisan Daratan & Lampu Malam */}
-        <mesh>
-          <sphereGeometry args={[2, 128, 128]} />
-          <meshStandardMaterial 
-            map={map} 
-            emissiveMap={night} 
-            emissive={new THREE.Color("#ffd27d")} 
-            emissiveIntensity={0.8}
-            roughnessMap={spec}
-            metalness={0.2}
-          />
-        </mesh>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <LayerButton active={layers.includes('geologi')} onClick={() => setLayers(['geologi'])} icon={<Activity size={20}/>} label="DETEKSI SEISMIK" sub="LIVE USGS STREAM" />
+          <LayerButton active={layers.includes('conflict')} onClick={() => setLayers(['conflict'])} icon={<ShieldAlert size={20}/>} label="ANCAMAN GLOBAL" sub="OSINT THREAT MAP" />
+          
+          <div className="mt-10 p-6 bg-cyan-950/20 border border-cyan-500/30 rounded-3xl font-mono text-[10px] space-y-3">
+            <p className="text-cyan-400 font-black italic border-b border-white/10 pb-2 flex items-center gap-2 underline underline-offset-4">
+               <Cpu size={14}/> SYSTEM_DIAGNOSTICS
+            </p>
+            <p className="text-slate-500">● NODE: Jakarta_01_Active</p>
+            <p className="text-slate-500">● SYNC: <span className="text-green-500 font-bold">STABLE</span></p>
+            <p className="text-slate-400 animate-pulse uppercase">● Streaming_Live_Coordinates...</p>
+          </div>
+        </div>
+      </aside>
 
-        {/* ATMOSFER: Awan Bergerak */}
-        <mesh ref={cloudRef} scale={1.018}>
-          <sphereGeometry args={[2, 128, 128]} />
-          <meshStandardMaterial map={clouds} transparent opacity={0.4} blending={THREE.AdditiveBlending} depthWrite={false} />
-        </mesh>
+      {/* VIEWPORT UTAMA */}
+      <section className="flex-1 relative bg-[radial-gradient(circle_at_center,_#0f172a_0%,_#000_100%)]">
+        <div className="absolute top-8 left-8 right-8 z-10 flex flex-col md:flex-row justify-between pointer-events-none gap-6">
+          <div className="bg-black/60 border border-white/10 p-4 rounded-2xl flex items-center gap-4 pointer-events-auto backdrop-blur-2xl">
+            <Search size={18} className="text-slate-500" />
+            <input className="bg-transparent border-none outline-none text-xs w-full md:w-80 text-white font-mono placeholder-slate-800 uppercase" placeholder="SCAN_SATELLITE_COORDINATES..." />
+          </div>
+          <div className="bg-red-600/10 border-2 border-red-600/50 px-8 py-4 rounded-2xl text-[11px] font-black text-white hidden md:flex items-center gap-4 backdrop-blur-2xl pointer-events-auto shadow-[0_0_30px_rgba(220,38,38,0.2)]">
+             <div className="w-2 h-2 bg-red-600 rounded-full animate-ping" />
+             CRITICAL_ANOMALY_DETECTED: SECTOR_7G
+          </div>
+        </div>
 
-        {/* GLOW: Efek Pendaran Cahaya Biru Planet */}
-        <mesh scale={1.12}>
-          <sphereGeometry args={[2, 128, 128]} />
-          <meshBasicMaterial color="#4facfe" transparent opacity={0.08} side={THREE.BackSide} />
-        </mesh>
+        <div className="w-full h-full cursor-crosshair">
+          <Canvas dpr={[1, 2]}>
+            <GlobeEngine activeLayers={layers} />
+          </Canvas>
+        </div>
 
-        {/* MARKER: Lokasi Kejadian Nyata */}
-        {activeLayers.includes('geologi') && geoData?.features?.map((f) => {
-          const [lng, lat] = f.geometry.coordinates;
-          const phi = (90 - lat) * (Math.PI / 180);
-          const theta = (lng + 180) * (Math.PI / 180);
-          const pos = [-(2.03 * Math.sin(phi) * Math.cos(theta)), 2.03 * Math.cos(phi), 2.03 * Math.sin(phi) * Math.sin(theta)];
+        {/* BOTTOM GLOBAL TICKER */}
+        <div className="absolute bottom-0 w-full h-14 bg-black/95 border-t border-white/10 flex items-center overflow-hidden font-mono text-[11px] italic backdrop-blur-2xl z-30">
+          <div className="bg-cyan-700 h-full px-12 flex items-center font-black text-white shrink-0 tracking-widest z-40 skew-x-[-20deg] -translate-x-5 shadow-[20px_0_40px_rgba(0,0,0,1)]">INTEL_FEED</div>
+          <div className="flex-1 whitespace-nowrap animate-marquee flex gap-40 items-center text-cyan-100 font-bold tracking-widest uppercase">
+             <span>● [NEWS] DATA GEMPA BUMI DUNIA TERUPDATE DALAM 10 DETIK TERAKHIR</span>
+             <span>● [INTEL] ANOMALI TEKANAN UDARA TERDETEKSI DI SEKTOR PASIFIK UTARA</span>
+             <span>● [SYSTEM] SEMUA SATELIT BEROPERASI PADA KAPASITAS MAKSIMAL</span>
+             <span>● [ALERT] UPAYA PERETASAN TERDETEKSI PADA NODE_CENTER_BGENG - PROTOKOL ENKRIPSI DIPERKUAT</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
 
-          return (
-            <group key={f.id} position={pos}>
-              <Float speed={4} rotationIntensity={1} floatIntensity={1}>
-                <mesh>
-                  <sphereGeometry args={[0.035, 16, 16]} />
-                  <meshBasicMaterial color={f.properties.mag > 5 ? "#ff0000" : "#00f2ff"} />
-                </mesh>
-                <Html distanceFactor={10}>
-                  <div className="group relative -translate-y-6">
-                    <div className={`w-3 h-3 rounded-full animate-ping ${f.properties.mag > 5 ? 'bg-red-600' : 'bg-cyan-500'}`} />
-                    <div className="hidden group-hover:block absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/95 border border-cyan-500/40 p-4 rounded-2xl backdrop-blur-2xl w-60 shadow-[0_0_40px_rgba(0,0,0,0.8)] z-50">
-                      <p className="text-[10px] font-black text-cyan-500 mb-1 border-b border-white/10 pb-1 italic">INTEL_REPORT_0x44</p>
-                      <p className="text-[13px] text-white font-bold leading-tight">{f.properties.mag} SR - {f.properties.place}</p>
-                      <p className="text-[9px] text-slate-500 mt-2 font-mono uppercase tracking-tighter italic">Live_Sync: USGS_SAT_01</p>
-                    </div>
-                  </div>
-                </Html>
-              </Float>
-            </group>
-          );
-        })}
-      </group>
-    </>
+function LayerButton({ active, onClick, icon, label, sub }: any) {
+  return (
+    <button onClick={onClick} className={`w-full flex items-center gap-5 p-6 rounded-3xl transition-all duration-500 border-2 text-left
+        ${active ? `bg-cyan-600/10 border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.1)] scale-[1.02]` : 'border-transparent opacity-30 hover:opacity-100 hover:bg-white/5'}
+      `}>
+      <span className={active ? 'text-cyan-400' : 'text-slate-600'}>{icon}</span>
+      <div>
+        <p className={`text-[13px] font-black tracking-tighter ${active ? 'text-white' : 'text-slate-500'}`}>{label}</p>
+        <p className="text-[10px] text-slate-600 font-mono italic tracking-tight uppercase">{sub}</p>
+      </div>
+    </button>
   );
 }

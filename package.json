@@ -1,13 +1,33 @@
 {
+  "name": "bgeng-global",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
   "dependencies": {
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.5.0",
-    "@types/three": "^0.183.1",
-    "axios": "^1.13.6",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.577.0",
-    "swr": "^2.4.1",
-    "tailwind-merge": "^3.5.0",
-    "three": "^0.183.2"
+    "@react-three/drei": "^9.88.0",
+    "@react-three/fiber": "^8.15.0",
+    "@types/three": "^0.158.0",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.284.0",
+    "next": "14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "swr": "^2.2.4",
+    "tailwind-merge": "^1.14.0",
+    "three": "^0.158.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.0.1",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5.0.0"
   }
 }

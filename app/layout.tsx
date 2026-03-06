@@ -1,14 +1,19 @@
 import './globals.css'
+import type { Metadata } from 'next'
 
-export const metadata = {
-  title: 'BGENG OMNIS | GLOBAL THREAT MONITOR',
-  description: 'Military-Grade OSINT Command Center',
+export const metadata: Metadata = {
+  title: 'BGENG GLOBAL',
+  description: 'Global Monitoring System',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en">
-      <body className="bg-black antialiased overflow-hidden">{children}</body>
+    <html lang="id">
+      <body>{children}</body>
     </html>
   )
 }

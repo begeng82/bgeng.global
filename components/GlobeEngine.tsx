@@ -11,8 +11,8 @@ export default function GlobeEngine() {
   const globeRef = useRef<any>(null);
   const cloudRef = useRef<any>(null);
 
-  // LIFETIME DATA: Update USGS Tiap 5 Detik
-  const { data: seismic } = useSWR(
+  // Data Gempa Lifetime (Update tiap 5 detik)
+  const { data } = useSWR(
     "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson",
     fetcher, { refreshInterval: 5000 }
   );
@@ -27,20 +27,19 @@ export default function GlobeEngine() {
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
-    if (globeRef.current) globeRef.current.rotation.y = t * 0.003;
-    if (cloudRef.current) cloudRef.current.rotation.y = t * 0.005;
+    if (globeRef.current) globeRef.current.rotation.y = t * 0.004;
+    if (cloudRef.current) cloudRef.current.rotation.y = t * 0.006;
   });
 
   return (
     <>
       <PerspectiveCamera makeDefault position={[0, 0, 7]} />
-      <OrbitControls enableDamping dampingFactor={0.05} minDistance={2.4} maxDistance={15} />
+      <OrbitControls enableDamping minDistance={2.5} maxDistance={15} />
       <Stars radius={300} count={20000} factor={7} fade />
-      <ambientLight intensity={0.4} />
-      <pointLight position={[10, 10, 10]} intensity={3} color="#4facfe" />
+      <ambientLight intensity={0.5} />
+      <pointLight position={[10, 10, 10]} intensity={2.5} color="#4facfe" />
 
       <group ref={globeRef}>
-        {/* CORE EARTH - HIGH DETAIL */}
         <mesh>
           <sphereGeometry args={[2, 128, 128]} />
           <meshStandardMaterial 
@@ -49,24 +48,19 @@ export default function GlobeEngine() {
             roughnessMap={spec}
             emissiveMap={night} 
             emissive={new THREE.Color("#ffd27d")} 
-            emissiveIntensity={1.5}
+            emissiveIntensity={1.2}
           />
         </mesh>
-
-        {/* DYNAMIC CLOUDS LAYER */}
-        <mesh ref={cloudRef} scale={1.025}>
+        <mesh ref={cloudRef} scale={1.02}>
           <sphereGeometry args={[2, 128, 128]} />
-          <meshStandardMaterial map={clouds} transparent opacity={0.4} blending={THREE.AdditiveBlending} />
+          <meshStandardMaterial map={clouds} transparent opacity={0.35} />
+        </mesh>
+        <mesh scale={1.12}>
+          <sphereGeometry args={[2, 128, 128]} />
+          <meshBasicMaterial color="#00f2ff" transparent opacity={0.07} side={THREE.BackSide} />
         </mesh>
 
-        {/* ATMOSPHERE SCATTERING GLOW */}
-        <mesh scale={1.15}>
-          <sphereGeometry args={[2, 128, 128]} />
-          <meshBasicMaterial color="#00f2ff" transparent opacity={0.08} side={THREE.BackSide} />
-        </mesh>
-
-        {/* REAL-TIME MARKERS */}
-        {seismic?.features?.slice(0, 50).map((f: any, i: number) => {
+        {data?.features?.slice(0, 40).map((f: any, i: number) => {
           const [lng, lat] = f.geometry.coordinates;
           const phi = (90 - lat) * (Math.PI / 180);
           const theta = (lng + 180) * (Math.PI / 180);
@@ -77,15 +71,8 @@ export default function GlobeEngine() {
           ];
           return (
             <group key={i} position={pos}>
-               <mesh>
-                 <sphereGeometry args={[0.04, 16, 16]} />
-                 <meshBasicMaterial color={f.properties.mag > 5 ? "#ff3333" : "#00f2ff"} />
-               </mesh>
-               <Html distanceFactor={10}>
-                  <div className="p-1 bg-black/60 border border-white/20 text-[6px] text-white opacity-0 hover:opacity-100 transition-opacity">
-                    M{f.properties.mag}
-                  </div>
-               </Html>
+               <mesh><sphereGeometry args={[0.03, 16, 16]} /><meshBasicMaterial color={f.properties.mag > 5 ? "red" : "#00f2ff"} /></mesh>
+               <Html distanceFactor={10}><div className="text-[8px] text-white/50 whitespace-nowrap">M{f.properties.mag}</div></Html>
             </group>
           );
         })}

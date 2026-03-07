@@ -1,56 +1,89 @@
 "use client";
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Canvas } from '@react-three/fiber';
-import { Radar, Activity, ShieldCheck, Zap } from 'lucide-react';
+import { Radar, Crosshair, AlertTriangle, ShieldAlert, Terminal, Activity } from 'lucide-react';
 
-// Force Client Only
 const GlobeEngine = dynamic(() => import('../components/GlobeEngine'), { ssr: false });
 
 export default function App() {
+  const [logStr, setLogStr] = useState("ESTABLISHING SECURE UPLINK...");
+
+  // Efek ngetik di terminal
+  useEffect(() => {
+    const logs = [
+      "DECRYPTING SATELLITE FEED...",
+      "BYPASSING FIREWALL PROXY...",
+      "SYNCING USGS SEISMIC DATA...",
+      "DETECTING CYBER THREATS...",
+      "OMNIS_V20 FULLY OPERATIONAL."
+    ];
+    let i = 0;
+    const interval = setInterval(() => {
+      setLogStr(logs[i]);
+      i = (i + 1) % logs.length;
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <main className="fixed inset-0 bg-[#020202] text-slate-300 flex flex-col lg:flex-row overflow-hidden font-sans uppercase">
+    <main className="fixed inset-0 bg-omnis-bg text-omnis-cyan flex flex-col lg:flex-row overflow-hidden font-mono uppercase text-xs selection:bg-omnis-red selection:text-white">
       
-      {/* HUD PANEL: Top on Mobile, Left on Desktop */}
-      <aside className="w-full lg:w-96 bg-black/80 border-b lg:border-r border-cyan-500/20 z-30 p-6 lg:p-8 flex flex-col backdrop-blur-xl shrink-0">
-        <div className="flex items-center gap-4 mb-8">
-          <Radar className="text-cyan-500 animate-spin-slow w-8 h-8" />
-          <div>
-            <h1 className="text-2xl font-black text-white italic tracking-tighter">OMNIS_V20</h1>
-            <p className="text-[9px] text-cyan-600 font-mono tracking-[0.3em] font-bold">GLOBAL_OSINT_NETWORK</p>
-          </div>
-        </div>
-
-        <div className="flex-1 space-y-4">
-          <div className="p-5 rounded-2xl bg-red-600/5 border border-red-500/20 flex items-center gap-4">
-            <Activity className="text-red-500 w-6 h-6 animate-pulse" />
+      {/* 🟢 LEFT PANEL: SYSTEM DIAGNOSTICS */}
+      <aside className="w-full lg:w-[350px] bg-black/40 border-b lg:border-r border-omnis-cyan/30 z-30 flex flex-col backdrop-blur-md relative shrink-0">
+        <div className="p-6 border-b border-omnis-cyan/20 bg-omnis-cyan/5">
+          <div className="flex items-center gap-4 mb-2">
+            <Radar className="text-omnis-red animate-spin-slow w-10 h-10" />
             <div>
-              <p className="text-xs font-black text-white">LIFETIME_SEISMIC</p>
-              <p className="text-[9px] text-slate-500 font-mono">STREAMING: USGS_GLOBAL</p>
-            </div>
-          </div>
-          <div className="p-5 rounded-2xl bg-cyan-600/5 border border-cyan-500/20 flex items-center gap-4">
-            <ShieldCheck className="text-cyan-500 w-6 h-6" />
-            <div>
-              <p className="text-xs font-black text-white">SATELLITE_LINK</p>
-              <p className="text-[9px] text-slate-500 font-mono">ENCRYPTED_SIGNAL</p>
+              <h1 className="text-3xl font-black text-white tracking-widest drop-shadow-[0_0_10px_rgba(0,242,255,0.8)]">OMNIS</h1>
+              <p className="text-[10px] tracking-[0.4em] text-omnis-red font-bold">V_20 // GOD_TIER</p>
             </div>
           </div>
         </div>
 
-        <div className="mt-6 p-4 bg-cyan-950/20 border border-cyan-500/30 rounded-xl font-mono text-[10px] space-y-2">
-           <div className="flex justify-between items-center opacity-70 border-b border-cyan-500/20 pb-2">
-              <span className="text-cyan-400 font-black italic">CORE_STATUS</span>
-              <Zap size={12} className="text-cyan-400" />
-           </div>
-           <p className="flex justify-between"><span>LINK:</span> <span className="text-green-500">SECURE</span></p>
-           <p className="flex justify-between"><span>NODE:</span> <span>JAKARTA_01</span></p>
+        <div className="p-6 flex-1 space-y-6 overflow-y-auto">
+          {/* Status Box */}
+          <div className="border border-omnis-cyan/30 p-4 bg-omnis-cyan/5 relative">
+            <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-omnis-cyan"></div>
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-omnis-cyan"></div>
+            <h2 className="text-white font-bold mb-3 flex items-center gap-2"><Activity size={14}/> SYSTEM_CORE</h2>
+            <div className="space-y-2 text-[10px]">
+              <div className="flex justify-between"><span>DEFCON_LEVEL:</span> <span className="text-omnis-amber animate-pulse">3 ELEVATED</span></div>
+              <div className="flex justify-between"><span>SAT_LINK:</span> <span className="text-green-500">CONNECTED (AES-256)</span></div>
+              <div className="flex justify-between"><span>GLOBAL_NODES:</span> <span className="text-white">8,492 ACTIVE</span></div>
+            </div>
+          </div>
+
+          {/* Layer Controls (Simulated UI) */}
+          <div className="space-y-2">
+             <h2 className="text-white font-bold mb-3 flex items-center gap-2 border-b border-omnis-cyan/20 pb-2"><ShieldAlert size={14}/> TACTICAL_LAYERS</h2>
+             {['SEISMIC_DATA', 'MILITARY_BASES', 'CYBER_ATTACKS', 'NAVAL_ROUTES'].map((layer, i) => (
+               <div key={i} className="flex items-center gap-3 p-2 hover:bg-omnis-cyan/10 cursor-pointer border border-transparent hover:border-omnis-cyan/30 transition-all">
+                 <div className={`w-3 h-3 border ${i % 2 === 0 ? 'bg-omnis-cyan border-omnis-cyan' : 'border-omnis-cyan'}`}></div>
+                 <span>{layer}</span>
+               </div>
+             ))}
+          </div>
         </div>
       </aside>
 
-      {/* 3D VIEWPORT */}
-      <section className="flex-1 relative bg-[radial-gradient(circle_at_center,_#111_0%,_#000_100%)]">
-        <div className="w-full h-full cursor-crosshair">
+      {/* 🔴 CENTER VIEWPORT (3D GLOBE) */}
+      <section className="flex-1 relative bg-[radial-gradient(circle_at_center,_#0a192f_0%,_#000_100%)] flex flex-col">
+        
+        {/* Top Bar Terminal Log */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-black/80 border border-omnis-cyan/30 px-6 py-2 flex items-center gap-3 shadow-[0_0_20px_rgba(0,242,255,0.2)]">
+           <Terminal size={14} className="text-omnis-amber" />
+           <span className="text-omnis-amber tracking-widest">{logStr}</span>
+        </div>
+
+        {/* Center Crosshair Overlay */}
+        <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center opacity-30">
+           <Crosshair size={300} strokeWidth={0.5} className="text-omnis-cyan animate-pulse-fast" />
+           <div className="absolute w-[400px] h-[400px] border border-omnis-cyan/20 rounded-full"></div>
+        </div>
+
+        {/* The 3D Engine */}
+        <div className="flex-1 w-full h-full cursor-crosshair">
           <Canvas dpr={[1, 2]}>
             <Suspense fallback={null}>
               <GlobeEngine />
@@ -58,16 +91,31 @@ export default function App() {
           </Canvas>
         </div>
 
-        {/* MARQUEE FOOTER */}
-        <div className="absolute bottom-0 w-full h-12 bg-black/90 border-t border-cyan-500/30 flex items-center overflow-hidden font-mono text-[10px] italic z-40">
-          <div className="bg-cyan-800 h-full px-8 flex items-center font-black text-white shrink-0 z-50 skew-x-[-15deg] -translate-x-4 shadow-[15px_0_30px_rgba(0,0,0,1)]">
-            LIVE_FEED
+        {/* Bottom Marquee */}
+        <div className="h-10 bg-omnis-red/20 border-t border-omnis-red/50 flex items-center overflow-hidden z-40 backdrop-blur-md">
+          <div className="bg-omnis-red h-full px-6 flex items-center text-white font-black tracking-widest shrink-0 z-50 flex gap-2">
+            <AlertTriangle size={16} className="animate-pulse"/> ALERT_FEED
           </div>
-          <div className="flex-1 whitespace-nowrap animate-marquee flex gap-16 items-center text-cyan-200/50 uppercase tracking-[0.2em]">
-             <span>● [INTEL] DATA GEMPA DUNIA UPDATE TIAP 5 DETIK ● [SYSTEM] OMNIS_V20 OPERATIONAL ● [DATA] MENDETEKSI PERGERAKAN TEKTONIK ● [STATUS] SATELIT AKTIF</span>
+          <div className="flex-1 whitespace-nowrap animate-marquee flex gap-12 items-center text-omnis-red font-bold tracking-[0.2em] shadow-inner">
+             <span>⚠️ [WARNING] MULTIPLE CYBER INCURSIONS DETECTED IN SECTOR 7 ⚠️ [USGS] MAGNITUDE 6.1 RECORDED ⚠️ [INTEL] TROOP MOVEMENTS CONFIRMED ⚠️ [SYSTEM] MAINTAINING ORBITAL LOCK</span>
           </div>
         </div>
       </section>
+
+      {/* 🟢 RIGHT PANEL (Desktop Only) */}
+      <aside className="hidden lg:flex w-[300px] bg-black/40 border-l border-omnis-cyan/30 z-30 flex-col backdrop-blur-md p-6">
+        <h2 className="text-white font-bold mb-4 border-b border-omnis-cyan/20 pb-2 text-right">LIVE_TELEMETRY</h2>
+        <div className="space-y-4">
+           {[1,2,3,4,5].map((i) => (
+             <div key={i} className="text-[9px] border-l-2 border-omnis-cyan pl-2 py-1">
+               <p className="text-white">ID: {Math.random().toString(36).substr(2, 8).toUpperCase()}</p>
+               <p className="text-omnis-cyan/60">LAT: {(Math.random() * 90).toFixed(4)} | LON: {(Math.random() * 180).toFixed(4)}</p>
+               <p className="text-omnis-amber">STATUS: TRACKING</p>
+             </div>
+           ))}
+        </div>
+      </aside>
+
     </main>
   );
 }

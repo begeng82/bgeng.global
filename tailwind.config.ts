@@ -9,7 +9,7 @@ const config: Config = {
     extend: {
       animation: {
         'spin-slow': 'spin 20s linear infinite',
-        'marquee': 'marquee 30s linear infinite',
+        'marquee': 'marquee 25s linear infinite',
       },
       keyframes: {
         marquee: {

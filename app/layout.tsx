@@ -1,7 +1,7 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'BGENG OMNIS V20 | GLOBAL STRATEGIC COMMAND',
+  title: 'OMNIS V20 | GLOBAL STRATEGIC COMMAND',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

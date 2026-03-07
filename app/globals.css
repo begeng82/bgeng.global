@@ -5,18 +5,24 @@
 :root { color-scheme: dark; }
 
 body {
-  background: black;
+  background: #000;
+  color: white;
   margin: 0;
   overflow: hidden;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Courier New', Courier, monospace; /* Font Hacker/Militer */
 }
 
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-marquee {
-  display: inline-flex;
-  animation: marquee 30s linear infinite;
+/* CRT Overlay Effect */
+.crt::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 100;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
 }
